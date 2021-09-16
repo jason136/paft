@@ -5,6 +5,8 @@ from pybooru import Danbooru
 from NHentai.nhentai import NHentai
 from saucenao_api import SauceNao, VideoSauce, BookSauce
 
+import tokens
+
 class apis(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -17,8 +19,8 @@ class apis(commands.Cog):
     async def urban(self, ctx, *args):
         url = "https://mashape-community-urban-dictionary.p.rapidapi.com/define"
         headers = {
-        'x-rapidapi-key': "4fa09be26emshf7e9058415218bfp1879c7jsne8a3df7de375",
-        'x-rapidapi-host': "mashape-community-urban-dictionary.p.rapidapi.com"
+        'x-rapidapi-key': tokens.rapid_api_key,
+        'x-rapidapi-host': 'mashape-community-urban-dictionary.p.rapidapi.com'
         }
         querystring = {"term":"wut"}
         querystring['term'] = ' '.join(args)
@@ -208,7 +210,7 @@ class apis(commands.Cog):
     @commands.command()
     async def sauce(self, ctx, url=None):
         try:
-            sauce = SauceNao('a6bf98b29a0d14f0492367493992240374399a3c')
+            sauce = SauceNao(tokens.saucenao_key)
             if url:
                 results = (sauce.from_url(url))
             elif ctx.message.attachments:
