@@ -1,0 +1,6 @@
+# Compile folders and vscode prefs
+.vscode/
+__pycache__/
+
+# sorry but i gotta keep the token hidden
+tokens.py
