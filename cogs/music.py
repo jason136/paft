@@ -5,11 +5,14 @@ from PIL import Image, ImageEnhance, ImageFilter
 from io import BytesIO
 from gtts import gTTS
 
+working_directory = os.getcwd()
+
 youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'restrictfilenames': True,
+    'outtmpl': '%(title)s.%(ext)s',
     'noplaylist': True,
     'nocheckcertificate': True,
     'ignoreerrors': False,
@@ -77,43 +80,20 @@ class utility(commands.Cog):
 
     queue_dict = {}
     skip = False
-
-    async def play_music(self, ctx, arg):
-        vc = ctx.message.guild.voice_client
-        try:
-            tmp = ctx.message.guild.voice_client.is_connected()
-        except:
-            await ctx.invoke(self.join)
-        server = ctx.message.guild
-        vc = server.voice_client
-        try:
-            async with ctx.typing():
-                url = arg
-                os.chdir('music/')
-                try:
-                    self.queue_dict[arg] = await YTDLSource.from_url(url)
-                except Exception as e:
-                    print(e)
-                os.chdir('/../')
-            print('length: ', len(self.queue_dict.keys()))
-            await self.player(ctx, vc)
-            print('exit')
-            print(self.queue_dict.keys())
-        except Exception as e:
-            print("error here", e)
+    looping = False
 
     async def player(self, ctx, vc):
         while self.queue_dict.keys():
             if len(self.queue_dict) > 1:
-                await ctx.send('{} **is queued**'.format(list(self.queue_dict.keys())[-1]))
+                await ctx.send('``{}`` **is queued**'.format(list(self.queue_dict.keys())[-1]))
                 print(self.queue_dict, 'returning')
                 return
-            await ctx.send('**Now playing:** {}'.format(list(self.queue_dict.keys())[0]))
+            await ctx.send('**Now playing:** ``{}``'.format(list(self.queue_dict.keys())[0]))
             print('pre play')
             try:
-                os.chdir('/music/')
+                os.chdir(working_directory + '/music/')
                 vc.play(discord.FFmpegPCMAudio(executable="ffmpeg.exe", source=list(self.queue_dict.values())[0]))
-                os.chdir('/../')
+                os.chdir(working_directory)
             except Exception as e:
                 print(e)
             print('post play ')
@@ -125,44 +105,53 @@ class utility(commands.Cog):
                     print('execute skip')
                     await vc.stop()
                     self.skip = False
-            self.queue_dict.pop(list(self.queue_dict.keys())[0])
+            if not self.looping: self.queue_dict.pop(list(self.queue_dict.keys())[0])
 
-    @commands.command()
-    async def speak(self, ctx, *args):
-        await self.verify_voice(ctx)
+    async def play_music(self, ctx, args): 
         try:
+            arg = ' '.join(args)
+            await self.verify_voice(ctx)
+            print('attemp play')
             vc = ctx.message.guild.voice_client
             try:
-                tmp = vc.is_connected()
-            except Exception as e:
-                print(e)
+                tmp = ctx.message.guild.voice_client.is_connected()
+            except:
                 await ctx.invoke(self.join)
             server = ctx.message.guild
             vc = server.voice_client
-            tts = gTTS(' '.join(args), lang='en', tld='ie', slow=False)
-            tts.save('music/voice.mp3')
-            print('save attempted')
             try:
-                self.queue_dict.append('voice.mp3')
+                async with ctx.typing():
+                    url = arg
+                    os.chdir(working_directory + '/music/')
+                    try:
+                        filename = await YTDLSource.from_url(url)
+                        if filename[-4:] == 'webm':
+                            name = filename[:-5]
+                        else:
+                            name = filename[:-4]
+                        name = name.replace('_', ' ')
+                        self.queue_dict[name] = filename
+                    except Exception as e:
+                        print(e)
+                    os.chdir(working_directory)
+                print('length: ', len(self.queue_dict.keys()))
+                await self.player(ctx, vc)
+                print('exit')
+                print(self.queue_dict.keys())
             except Exception as e:
-                print(e)
-            await self.player(ctx, vc)
+                print("error here", e)
         except Exception as e:
             print(e)
 
     @commands.command()
     async def play(self, ctx, *args):
-        try:
-            await self.verify_voice(ctx)
-            print('attemp try')
-            await self.play_music(ctx, ' '.join(args))
-        except Exception as e:
-            print(e)
+        print('attempt play')
+        await self.play_music(ctx, args)
 
     @commands.command()
     async def p(self, ctx, *args):
-        print('attempt play')
-        await self.play_music(ctx, ' '.join(args))
+        print('attempt p')
+        await self.play_music(ctx, args)
 
     @commands.command()
     async def pause(self, ctx):
@@ -203,7 +192,47 @@ class utility(commands.Cog):
 
     @commands.command()
     async def queue(self, ctx):
-        await ctx.send(str(self.queue_dict.keys()))
+        await ctx.send(str('``' + ', '.join(self.queue_dict.keys()) + '``'))
+
+    @commands.command()
+    async def q(self, ctx):
+        await ctx.send(str('``' + ', '.join(self.queue_dict.keys()) + '``'))
+
+    @commands.command()
+    async def loop(self, ctx):
+        if self.looping:
+            self.looping = False
+            await ctx.send('looping is now off')
+        else:
+            self.looping = True
+            await ctx.send('looping is now on')
+        
+    @commands.command()
+    async def loop(self, ctx):
+        await ctx.invoke(self.loop)
+    
+    @commands.command()
+    async def speak(self, ctx, *args):
+        await self.verify_voice(ctx)
+        try:
+            vc = ctx.message.guild.voice_client
+            try:
+                tmp = vc.is_connected()
+            except Exception as e:
+                print(e)
+                await ctx.invoke(self.join)
+            server = ctx.message.guild
+            vc = server.voice_client
+            tts = gTTS(' '.join(args), lang='en', tld='ie', slow=False)
+            tts.save('music/voice.mp3')
+            print('save attempted')
+            try:
+                self.queue_dict.append('voice.mp3')
+            except Exception as e:
+                print(e)
+            await self.player(ctx, vc)
+        except Exception as e:
+            print(e)
 
 def setup(client):
     client.add_cog(utility(client))

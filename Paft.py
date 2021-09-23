@@ -326,7 +326,7 @@ async def spool(ctx, *args):
 
 @client.event
 async def on_message(message):
-    print(message.guild.id)
+    #print(message.guild.id)
     try: 
         print('{} - {}: {}: {} '.format(time.strftime('%a %H:%M:%S'), message.author.guild.name, str(message.author), message.content))
     except AttributeError:
