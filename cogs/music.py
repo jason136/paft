@@ -85,7 +85,7 @@ class utility(commands.Cog):
     async def player(self, ctx, vc):
         while self.queue_dict.keys():
             if len(self.queue_dict) > 1:
-                await ctx.send('``{}`` **is queued**'.format(list(self.queue_dict.keys())[-1]))
+                await ctx.send('**Queued:** ``{}``'.format(list(self.queue_dict.keys())[-1]))
                 print(self.queue_dict, 'returning')
                 return
             await ctx.send('**Now playing:** ``{}``'.format(list(self.queue_dict.keys())[0]))
@@ -100,12 +100,18 @@ class utility(commands.Cog):
             self.skip = False
             while vc.is_playing():
                 await asyncio.sleep(1)
-                print('is playing', self.skip, len(self.queue_dict.keys()))
+                print('playing music, skip: {}, looping: {}, queue: {}, song: {}'.format(self.skip, self.looping, len(list(self.queue_dict.keys())), list(self.queue_dict.keys())[0]))
                 if self.skip:
-                    print('execute skip')
-                    await vc.stop()
+                    vc.stop()
                     self.skip = False
-            if not self.looping: self.queue_dict.pop(list(self.queue_dict.keys())[0])
+                    print('skip executed')
+            if self.looping:
+                temp = list(self.queue_dict.values())[0]
+                key = list(self.queue_dict.keys())[0]
+                self.queue_dict.pop(key)
+                self.queue_dict[key] = temp
+            else:
+                self.queue_dict.pop(list(self.queue_dict.keys())[0])
 
     async def play_music(self, ctx, args): 
         try:
@@ -208,7 +214,7 @@ class utility(commands.Cog):
             await ctx.send('looping is now on')
         
     @commands.command()
-    async def loop(self, ctx):
+    async def l(self, ctx):
         await ctx.invoke(self.loop)
     
     @commands.command()
