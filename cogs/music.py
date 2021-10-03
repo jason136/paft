@@ -73,6 +73,7 @@ class utility(commands.Cog):
         vc = ctx.message.guild.voice_client
         try:
             tmp = vc.is_connected()
+            self.looping = False
             await vc.disconnect()
         except Exception as e:
             print(e)
@@ -81,8 +82,10 @@ class utility(commands.Cog):
     queue_dict = {}
     skip = False
     looping = False
+    player_active = False
 
     async def player(self, ctx, vc):
+        self.player_active = True
         while self.queue_dict.keys():
             if len(self.queue_dict) > 1:
                 await ctx.send('**Queued:** ``{}``'.format(list(self.queue_dict.keys())[-1]))
@@ -112,6 +115,8 @@ class utility(commands.Cog):
                 self.queue_dict[key] = temp
             else:
                 self.queue_dict.pop(list(self.queue_dict.keys())[0])
+        print('music complete')
+        self.player_active = False
 
     async def play_music(self, ctx, args): 
         try:
@@ -130,18 +135,25 @@ class utility(commands.Cog):
                     url = arg
                     os.chdir(working_directory + '/music/')
                     try:
-                        filename = await YTDLSource.from_url(url)
+                        dupe = False
+                        try:
+                            filename = await YTDLSource.from_url(url)
+                        except WindowsError as winerror:
+                            filename = str(winerror)[:-19].replace('\'', '')
+                            dupe = True
                         if filename[-4:] == 'webm':
                             name = filename[:-5]
                         else:
                             name = filename[:-4]
                         name = name.replace('_', ' ')
-                        self.queue_dict[name] = filename
+                        if not dupe:
+                            self.queue_dict[name] = filename
+                        else:
+                            self.queue_dict[str('{} v={}'.format(name, str(self.queue_dict.values()).count(filename)) + 1)] = filename
                     except Exception as e:
                         print(e)
                     os.chdir(working_directory)
-                print('length: ', len(self.queue_dict.keys()))
-                await self.player(ctx, vc)
+                if not self.player_active: await self.player(ctx, vc)
                 print('exit')
                 print(self.queue_dict.keys())
             except Exception as e:
@@ -183,7 +195,8 @@ class utility(commands.Cog):
         vc = ctx.message.guild.voice_client
         if vc.is_playing():
             self.queue_dict = {}
-            await vc.stop()
+            self.looping = False
+            vc.stop()
         else:
             await ctx.send("paft is not playing anything")
 
