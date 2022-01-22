@@ -1,8 +1,7 @@
 import discord, requests, asyncio, random, traceback
-import xml.etree.ElementTree as ET
 from discord.ext import commands
 from pybooru import Danbooru
-from NHentai.nhentai import NHentai
+from NHentai import NHentai
 from saucenao_api import SauceNao, VideoSauce, BookSauce
 
 import tokens
@@ -45,38 +44,41 @@ class apis(commands.Cog):
             loop = int(arguments.pop(0))
         except:
             loop = 1
-        nhentai = NHentai()
-        search_obj = nhentai.search(query=' '.join(arguments), sort='popular', page=1)
-        print(' '.join(args))
-        for x in range(0, loop):
-            embed = discord.Embed(title=str(search_obj.doujins[x].title), color=0xff1c64)
-            embed.add_field(name="id:", value=str(search_obj.doujins[x].id), inline=False)
-            embed.set_image(url=str(search_obj.doujins[x].cover))
-            await ctx.send(embed=embed)
-            await asyncio.sleep(1)
+        try:
+            nhentai = NHentai()
+            search_obj = nhentai.search(query=' '.join(arguments), sort='popular', page=1)
+            print(' '.join(args))
+            for x in range(0, loop):
+                embed = discord.Embed(title=str(search_obj.doujins[x].title), color=0xff1c64)
+                embed.add_field(name="id:", value=str(search_obj.doujins[x].id), inline=False)
+                embed.set_image(url=str(search_obj.doujins[x].cover.src))
+                await ctx.send(embed=embed)
+                await asyncio.sleep(1)
+        except Exception as e:
+            print(e)
 
     @commands.has_permissions(manage_channels=True)
     @commands.command()
 
     async def id(self, ctx, *args):
         nhentai = NHentai()
-        doujin = nhentai._get_doujin(id=' '.join(args))
-        title = str(doujin.title)
+        doujin = nhentai.get_doujin(id=''.join(args))
+        title = str(doujin.title.english)
         print(title)
         embed = discord.Embed(title=title, color=0xff1c64)
         embed.add_field(name="id:", value=str(doujin.id), inline=False)
         embed.add_field(name="url:", value='https://nhentai.to/g/' + str(doujin.id), inline=False)
-        embed.add_field(name="tags:", value=', '.join(doujin.tags) or 'none', inline=False)
-        embed.add_field(name="artists:", value=', '.join(doujin.artists) or 'none', inline=False)
-        embed.add_field(name="languages:", value=', '.join(doujin.languages) or 'none', inline=False)
-        embed.add_field(name="categories:", value=', '.join(doujin.categories) or 'none', inline=False)
-        embed.add_field(name="characters:", value=', '.join(doujin.characters) or 'none', inline=False)
-        embed.add_field(name="parodies:", value=', '.join(doujin.parodies) or 'none', inline=False)
+        embed.add_field(name="tags:", value=', '.join(tag.name for tag in doujin.tags) or 'none', inline=False)
+        embed.add_field(name="artists:", value=', '.join(artist.name for artist in doujin.artists) or 'none', inline=False)
+        embed.add_field(name="languages:", value=', '.join(language.name for language in doujin.languages) or 'none', inline=False)
+        embed.add_field(name="categories:", value=', '.join(category.name for category in doujin.categories) or 'none', inline=False)
+        embed.add_field(name="characters:", value=', '.join(character.name for character in doujin.characters) or 'none', inline=False)
+        embed.add_field(name="parodies:", value=', '.join(parody.name for parody in doujin.parodies) or 'none', inline=False)
         embed.add_field(name="total pages:", value=str(doujin.total_pages) or 'none', inline=False)
         await ctx.send(embed=embed)
         reactions = ['⏮️', '⬅️', '➡️', '⏭️', '❌']
         embed = discord.Embed(title='', color=0xff1c64)
-        embed.set_image(url=str(doujin.images[0]))
+        embed.set_image(url=str(doujin.images[0].src))
         embed.set_footer(text='page 1 out of {}'.format(len(doujin.images)))
         msg = await ctx.send(embed=embed)
         for emoji in reactions:
@@ -123,7 +125,8 @@ class apis(commands.Cog):
                     [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
                     return
             embed = discord.Embed(title='', color=0xff1c64)
-            embed.set_image(url=str(doujin.images[x]))
+            embed.set_image(url=str(doujin.images[x].src))
+            print(str(doujin.images[x].src))
             embed.set_footer(text='page {} out of {}'.format(x + 1, len(doujin.images)))
             await msg.edit(embed=embed)
             

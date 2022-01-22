@@ -13,7 +13,7 @@ client.load_extension('cogs.music')
 
 @client.event
 async def on_ready():
-    await client.change_presence(activity=discord.Streaming(name="Я люблю вас", url="https://www.youtube.com/watch?v=Ya3XufguZMY"))
+    await client.change_presence(activity=discord.Streaming(name="near", url="https://www.youtube.com/watch?v=ox2CP5oz61g&t=2013s"))
     #await client.change_presence(activity=discord.Game(name="being but a shadow of his former self"))
     print('We have logged in as {0.user}'.format(client))
 
@@ -323,6 +323,11 @@ async def spool(ctx, *args):
             await channel.send(str(' '.join(args)))
     except Exception as e:
         print(e)
+
+@client.command()
+async def invite(ctx):
+    link = await ctx.channel.create_invite(max_age = 3000)
+    print(link)
 
 @client.event
 async def on_message(message):

@@ -56,20 +56,19 @@ class utility(commands.Cog):
     async def verify_voice(self, ctx):
         if not ctx.author.voice:
             await ctx.send('You are not in a voice channel')
-            return
+            return False
+        else:
+            return True
 
     @commands.command(pass_content=True)
     async def join(self, ctx):
-        if ctx.author.voice:
-            channel = ctx.author.voice.channel
-            await channel.connect()
-        else:
-            await ctx.send('You are not in a voice channel')
-            return
-
+        if not await self.verify_voice(ctx): return
+        channel = ctx.author.voice.channel
+        await channel.connect()
+        
     @commands.command(pass_content=True)
     async def leave(self, ctx):
-        await self.verify_voice(ctx)
+        if not await self.verify_voice(ctx): return
         vc = ctx.message.guild.voice_client
         try:
             tmp = vc.is_connected()
@@ -121,7 +120,7 @@ class utility(commands.Cog):
     async def play_music(self, ctx, args): 
         try:
             arg = ' '.join(args)
-            await self.verify_voice(ctx)
+            if not await self.verify_voice(ctx): return
             print('attemp play')
             vc = ctx.message.guild.voice_client
             try:
@@ -173,7 +172,7 @@ class utility(commands.Cog):
 
     @commands.command()
     async def pause(self, ctx):
-        await self.verify_voice(ctx)
+        if not await self.verify_voice(ctx): return
         vc = ctx.message.guild.voice_client
         if vc.is_playing():
             await vc.pause()
@@ -182,7 +181,7 @@ class utility(commands.Cog):
     
     @commands.command()
     async def resume(self, ctx):
-        await self.verify_voice(ctx)
+        if not await self.verify_voice(ctx): return
         vc = ctx.message.guild.voice_client
         if vc.is_paused():
             await vc.resume()
@@ -191,7 +190,7 @@ class utility(commands.Cog):
 
     @commands.command()
     async def stop(self, ctx):
-        await self.verify_voice(ctx)
+        if not await self.verify_voice(ctx): return
         vc = ctx.message.guild.voice_client
         if vc.is_playing():
             self.queue_dict = {}
@@ -202,7 +201,7 @@ class utility(commands.Cog):
 
     @commands.command()
     async def skip(self, ctx):
-        await self.verify_voice(ctx)
+        if not await self.verify_voice(ctx): return
         self.skip = True
 
     @commands.command()
@@ -232,7 +231,7 @@ class utility(commands.Cog):
     
     @commands.command()
     async def speak(self, ctx, *args):
-        await self.verify_voice(ctx)
+        if not await self.verify_voice(ctx): return
         try:
             vc = ctx.message.guild.voice_client
             try:
