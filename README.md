@@ -13,8 +13,7 @@ After this is done simply run the Paft.py script and if all relevant modules are
 
 To see what the bot does see the commands in the main file and cogs, or type ^help in a discord server it's active in. 
 
-## Warning and Note about the future
+## Disclaimer
 
-This bot runs with the discord.py wrapper class for the Discord API, which has since been archived. 
-The creator has said he does not intend to ever implement slash commands, so when the Discord API makes message content by privileged only this bot will most likely break. 
-It is unlikely I'll do anything as ambitious as rewriting the entire bot so that'll just have to be the end of it sadly. 
+This bot uses multiple third party services and technologies. By deploying this bot you agree to the terms of services of these services and technologies. 
+This bot is for personal use only and is not intended for use by anyone other than the owner of the API keys it uses. 

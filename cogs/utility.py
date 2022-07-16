@@ -3,7 +3,6 @@ from discord import *
 from discord.ext import commands
 from PIL import Image, ImageEnhance, ImageFilter
 from io import BytesIO
-from gtts import gTTS
 
 class utility(commands.Cog):
     def __init__(self, client):

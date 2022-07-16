@@ -1,4 +1,4 @@
-import discord, requests, asyncio, random, traceback
+import discord, requests, asyncio, random, traceback, json, urllib.request
 from discord.ext import commands
 from pybooru import Danbooru
 from NHentai import NHentai
@@ -13,6 +13,49 @@ class apis(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f"apis is initialized")
+
+    @commands.command()
+    async def dalle(self, ctx, *args):
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'bearer {tokens.dalle_token}'
+        }
+        body = {
+            'task_type': 'text2im',
+            'prompt': {'caption': f'{" ".join(args)}', 
+					    'batch_size': 6
+            }
+        }
+        response = requests.post('https://labs.openai.com/api/labs/tasks', headers=headers, json=body)
+
+        # This command is not to be used in violation of the following OpenAI Labs Content Policy. 
+        # https://labs.openai.com/policies/content-policy
+        # This is for personal use only and is not to be used for commercial purposes. 
+
+        json_response = json.loads(response.text)
+        task_id = json_response['id']
+
+        for x in range(10):
+            response = requests.get(f'https://labs.openai.com/api/labs/tasks/{task_id}', headers=headers)
+            image_response = json.loads(response.text)
+            print(image_response)
+            if image_response['status'] == 'succeeded':
+                break
+            elif image_response['status'] == 'rejected':
+                await ctx.send('image regected, try again')
+                return
+            await asyncio.sleep(2)
+
+        filenames = []
+        for image in image_response['generations']['data']:
+            filename = 'pictures\\' + image['id'] + '.webp'
+            filenames.append(filename)
+            urllib.request.urlretrieve(f"{image['generation']['image_path']}", filename)
+
+        for filename in filenames:
+            file = discord.File(filename, filename='image.webp')
+            await ctx.send(file=file)
+            await asyncio.sleep(0.5)
 
     @commands.command()
     async def urban(self, ctx, *args):
@@ -61,74 +104,78 @@ class apis(commands.Cog):
     @commands.command()
 
     async def id(self, ctx, *args):
-        nhentai = NHentai()
-        doujin = nhentai.get_doujin(id=''.join(args))
-        title = str(doujin.title.english)
-        print(title)
-        embed = discord.Embed(title=title, color=0xff1c64)
-        embed.add_field(name="id:", value=str(doujin.id), inline=False)
-        embed.add_field(name="url:", value='https://nhentai.to/g/' + str(doujin.id), inline=False)
-        embed.add_field(name="tags:", value=', '.join(tag.name for tag in doujin.tags) or 'none', inline=False)
-        embed.add_field(name="artists:", value=', '.join(artist.name for artist in doujin.artists) or 'none', inline=False)
-        embed.add_field(name="languages:", value=', '.join(language.name for language in doujin.languages) or 'none', inline=False)
-        embed.add_field(name="categories:", value=', '.join(category.name for category in doujin.categories) or 'none', inline=False)
-        embed.add_field(name="characters:", value=', '.join(character.name for character in doujin.characters) or 'none', inline=False)
-        embed.add_field(name="parodies:", value=', '.join(parody.name for parody in doujin.parodies) or 'none', inline=False)
-        embed.add_field(name="total pages:", value=str(doujin.total_pages) or 'none', inline=False)
-        await ctx.send(embed=embed)
-        reactions = ['⏮️', '⬅️', '➡️', '⏭️', '❌']
-        embed = discord.Embed(title='', color=0xff1c64)
-        embed.set_image(url=str(doujin.images[0].src))
-        embed.set_footer(text='page 1 out of {}'.format(len(doujin.images)))
-        msg = await ctx.send(embed=embed)
-        for emoji in reactions:
-            await msg.add_reaction(emoji)
-        close_embed = discord.Embed(title='{} has closed'.format(title), color=0xff1c64)
-        x = 0
-        while x < (len(doujin.images)):
-            def check(reaction, user):
-                return user == ctx.message.author and (str(reaction.emoji) in reactions)
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
-            except asyncio.TimeoutError:
-                await msg.edit(embed=close_embed)
-                [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
-                return
-            else:
-                if str(reaction.emoji) == '⏮️':
-                    x = 0
-                    await msg.remove_reaction('⏮️', ctx.message.author)
-                elif str(reaction.emoji) == '⬅️':
-                    if x == 0:
-                        await msg.remove_reaction('⬅️', ctx.message.author)
-                        await msg.edit(embed=close_embed)
-                        [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
-                        return
-                    else: 
-                        x -= 1
-                        await msg.remove_reaction('⬅️', ctx.message.author)
-                elif str(reaction.emoji) == '➡️':
-                    if x == len(doujin.images) - 1:
-                        await msg.remove_reaction('➡️', ctx.message.author)
-                        await msg.edit(embed=close_embed)
-                        [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
-                        return
-                    else:
-                        x += 1
-                        await msg.remove_reaction('➡️', ctx.message.author)
-                elif str(reaction.emoji) == '⏭️':
-                    x = len(doujin.images) - 1
-                    await msg.remove_reaction('⏭️', ctx.message.author)
-                elif str(reaction.emoji) == '❌':
-                    await msg.remove_reaction('❌', ctx.message.author)
+        try: 
+            nhentai = NHentai()
+            doujin = nhentai.get_doujin(doujin_id=int(''.join(args)))
+            print(doujin)
+            title = str(doujin.title.english)
+            print(title)
+            embed = discord.Embed(title=title, color=0xff1c64)
+            embed.add_field(name="id:", value=str(doujin.id), inline=False)
+            embed.add_field(name="url:", value='https://nhentai.to/g/' + str(doujin.id), inline=False)
+            embed.add_field(name="tags:", value=', '.join(tag.name for tag in doujin.tags) or 'none', inline=False)
+            embed.add_field(name="artists:", value=', '.join(artist.name for artist in doujin.artists) or 'none', inline=False)
+            embed.add_field(name="languages:", value=', '.join(language.name for language in doujin.languages) or 'none', inline=False)
+            embed.add_field(name="categories:", value=', '.join(category.name for category in doujin.categories) or 'none', inline=False)
+            embed.add_field(name="characters:", value=', '.join(character.name for character in doujin.characters) or 'none', inline=False)
+            embed.add_field(name="parodies:", value=', '.join(parody.name for parody in doujin.parodies) or 'none', inline=False)
+            embed.add_field(name="total pages:", value=str(doujin.total_pages) or 'none', inline=False)
+            await ctx.send(embed=embed)
+            reactions = ['⏮️', '⬅️', '➡️', '⏭️', '❌']
+            embed = discord.Embed(title='', color=0xff1c64)
+            embed.set_image(url=str(doujin.images[0].src))
+            embed.set_footer(text='page 1 out of {}'.format(len(doujin.images)))
+            msg = await ctx.send(embed=embed)
+            for emoji in reactions:
+                await msg.add_reaction(emoji)
+            close_embed = discord.Embed(title='{} has closed'.format(title), color=0xff1c64)
+            x = 0
+            while x < (len(doujin.images)):
+                def check(reaction, user):
+                    return user == ctx.message.author and (str(reaction.emoji) in reactions)
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
+                except asyncio.TimeoutError:
                     await msg.edit(embed=close_embed)
                     [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
                     return
-            embed = discord.Embed(title='', color=0xff1c64)
-            embed.set_image(url=str(doujin.images[x].src))
-            print(str(doujin.images[x].src))
-            embed.set_footer(text='page {} out of {}'.format(x + 1, len(doujin.images)))
-            await msg.edit(embed=embed)
+                else:
+                    if str(reaction.emoji) == '⏮️':
+                        x = 0
+                        await msg.remove_reaction('⏮️', ctx.message.author)
+                    elif str(reaction.emoji) == '⬅️':
+                        if x == 0:
+                            await msg.remove_reaction('⬅️', ctx.message.author)
+                            await msg.edit(embed=close_embed)
+                            [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
+                            return
+                        else: 
+                            x -= 1
+                            await msg.remove_reaction('⬅️', ctx.message.author)
+                    elif str(reaction.emoji) == '➡️':
+                        if x == len(doujin.images) - 1:
+                            await msg.remove_reaction('➡️', ctx.message.author)
+                            await msg.edit(embed=close_embed)
+                            [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
+                            return
+                        else:
+                            x += 1
+                            await msg.remove_reaction('➡️', ctx.message.author)
+                    elif str(reaction.emoji) == '⏭️':
+                        x = len(doujin.images) - 1
+                        await msg.remove_reaction('⏭️', ctx.message.author)
+                    elif str(reaction.emoji) == '❌':
+                        await msg.remove_reaction('❌', ctx.message.author)
+                        await msg.edit(embed=close_embed)
+                        [await msg.remove_reaction(reaction, msg.author) for reaction in reactions]
+                        return
+                embed = discord.Embed(title='', color=0xff1c64)
+                embed.set_image(url=str(doujin.images[x].src))
+                print(str(doujin.images[x].src))
+                embed.set_footer(text='page {} out of {}'.format(x + 1, len(doujin.images)))
+                await msg.edit(embed=embed)
+        except Exception as e:
+            print(e)
             
     @commands.command()
     async def danbo(self, ctx, *args):
