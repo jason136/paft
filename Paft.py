@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord.utils import find
 import resources.connectfour as c4
 import chess as chesss
+import chess.engine as engine
 import tokens
 
 intents = discord.Intents.all()
@@ -14,8 +15,9 @@ client.load_extension('cogs.music')
 
 @client.event
 async def on_ready():
-    await client.change_presence(activity=discord.Streaming(name="near", url="https://www.youtube.com/watch?v=ox2CP5oz61g&t=2013s"))
-    #await client.change_presence(activity=discord.Game(name="being but a shadow of his former self"))
+    await client.change_presence(activity=discord.Streaming(name="near", url="https://www.youtube.com/watch?v=XC1LbLJO6fQ&t=2013s"))
+    # await client.change_presence(activity=discord.Streaming(name="near", url="https://www.youtube.com/watch?v=ox2CP5oz61g&t=2013s"))
+    # await client.change_presence(activity=discord.Game(name="being but a shadow of his former self"))
     print('We have logged in as {0.user}'.format(client))
 
 @client.command()
@@ -223,7 +225,7 @@ async def chess(ctx, *args):
         def check(reaction, user):
             return user != msg.author and ((str(reaction.emoji) in reactions) or str(reaction.emoji) == '😐' or str(reaction.emoji) == '❌' or str(reaction.emoji) == '🔁') and reaction.message == msg
         try:
-            reaction, user = await client.wait_for('reaction_add', timeout=120.0, check=check)
+            reaction, user = await client.wait_for('reaction_add', timeout=300.0, check=check)
         except asyncio.TimeoutError:
             closeembed = discord.Embed(title='Game has timed out', color=0x808080)
             await msg.edit(embed=closeembed)
